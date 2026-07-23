@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom scrollbar for game list */
+.game-list::-webkit-scrollbar {
+  width: 6px;
+}
+.game-list::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+.game-list::-webkit-scrollbar-thumb {
+  background: #3f3f3f;
+  border-radius: 3px;
+}
+.game-list::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Board container polish */
+.board-container {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+}
