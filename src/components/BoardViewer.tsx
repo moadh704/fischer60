@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, type CSSProperties } from 'react'
 import { Chess } from 'chess.js'
 import { Chessboard } from 'react-chessboard'
 import { FischerGame } from '../lib/parseGames'
@@ -24,18 +24,14 @@ function getCaptured(fen: string) {
   }
   const whiteCaptured: string[] = []
   const blackCaptured: string[] = []
-  // White pieces captured by Black (black has them)
   for (const [p, missing] of Object.entries(pieceCount)) {
     if (missing <= 0) continue
     if (p === p.toUpperCase()) {
-      // white piece missing → captured by black
       for (let i = 0; i < missing; i++) blackCaptured.push(p.toLowerCase())
     } else {
-      // black piece missing → captured by white
       for (let i = 0; i < missing; i++) whiteCaptured.push(p.toUpperCase())
     }
   }
-  // Sort by value desc
   const sortFn = (a: string, b: string) => (PIECE_VALUES[b.toLowerCase()] || 0) - (PIECE_VALUES[a.toLowerCase()] || 0)
   whiteCaptured.sort(sortFn)
   blackCaptured.sort(sortFn)
@@ -53,13 +49,12 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
   const [moveIndex, setMoveIndex] = useState(0)
   const [orientation, setOrientation] = useState<'white' | 'black'>('white')
   const [autoPlay, setAutoPlay] = useState(false)
-  const [speed, setSpeed] = useState(800) // ms
+  const [speed, setSpeed] = useState(800)
   const [history, setHistory] = useState<string[]>([])
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null)
   const [copied, setCopied] = useState(false)
   const boardRef = useRef<HTMLDivElement>(null)
 
-  // Load game
   useEffect(() => {
     if (!game) return
     try {
@@ -95,7 +90,6 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
     setLastMove(lastFromTo)
   }, [chess, history, game])
 
-  // Auto play
   useEffect(() => {
     if (!autoPlay || moveIndex >= history.length) {
       if (moveIndex >= history.length) setAutoPlay(false)
@@ -107,7 +101,6 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
     return () => clearTimeout(t)
   }, [autoPlay, moveIndex, history.length, goToMove, speed])
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
@@ -161,8 +154,7 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
   const currentMoveSan = history[moveIndex - 1] || null
   const { whiteCaptured, blackCaptured } = getCaptured(fen)
 
-  // Custom square styles for last move
-  const customSquareStyles: Record<string, React.CSSProperties> = {}
+  const customSquareStyles: Record<string, CSSProperties> = {}
   if (lastMove) {
     customSquareStyles[lastMove.from] = { backgroundColor: 'rgba(212, 175, 55, 0.35)' }
     customSquareStyles[lastMove.to] = { backgroundColor: 'rgba(212, 175, 55, 0.55)' }
@@ -180,9 +172,7 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
 
   return (
     <div className="flex-1 flex flex-col xl:flex-row gap-5 p-4 lg:p-6 overflow-hidden animate-fade-in">
-      {/* Board column */}
       <div className="flex flex-col items-center shrink-0">
-        {/* Players bar */}
         <div className="w-full max-w-[min(100%,540px)] mb-3 flex items-center justify-between text-sm">
           <div className={`flex items-center gap-2 ${orientation === 'black' ? 'order-2' : ''}`}>
             <span className="w-2.5 h-2.5 rounded-full bg-zinc-200" />
@@ -190,7 +180,7 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
               {orientation === 'white' ? game.white : game.black}
             </span>
           </div>
-          <div className={`flex items-center gap-2 ${orientation === 'black' ? 'order-1' : ''}`}>
+          <div className={`flex items-center gap-2 ${orientation === 'black' ? 'order-1' : ''`}>
             <span className={isFischerWhite && orientation === 'black' || !isFischerWhite && orientation === 'white' ? 'text-chess-gold font-medium' : 'text-zinc-300'}>
               {orientation === 'white' ? game.black : game.white}
             </span>
@@ -212,7 +202,6 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
           />
         </div>
 
-        {/* Captured pieces */}
         <div className="w-full max-w-[min(100%,540px)] mt-3 flex justify-between text-lg leading-none tracking-tight">
           <div className="flex gap-0.5 text-zinc-400 min-h-[1.4rem]">
             {(orientation === 'white' ? blackCaptured : whiteCaptured).map((p, i) => (
@@ -226,7 +215,6 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
           </div>
         </div>
 
-        {/* Controls */}
         <div className="flex items-center gap-1.5 mt-4 flex-wrap justify-center">
           <button
             onClick={() => onPrevGame?.()}
@@ -294,7 +282,6 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
             ↻
           </button>
 
-          {/* Speed */}
           <select
             value={speed}
             onChange={e => setSpeed(Number(e.target.value))}
@@ -320,7 +307,6 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
         </p>
       </div>
 
-      {/* Info + moves */}
       <div className="flex-1 min-w-0 flex flex-col max-w-lg">
         <div className="mb-4">
           <div className="flex items-start justify-between gap-3">
@@ -369,7 +355,6 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
           </div>
         </div>
 
-        {/* Move list */}
         <div className="flex-1 overflow-y-auto move-list glass rounded-xl p-3.5">
           <div className="grid grid-cols-[auto_1fr_1fr] gap-x-2 gap-y-0.5 text-sm font-mono">
             {Array.from({ length: Math.ceil(history.length / 2) }).map((_, i) => {
