@@ -16,7 +16,14 @@ export interface FischerGame {
 }
 
 export async function parseAllGames(): Promise<FischerGame[]> {
-  const response = await fetch('./fischer60.pgn')
+  // Load the complete PGN of all 60 games from a public source
+  // (avoids committing a large binary-like text file)
+  const response = await fetch(
+    'https://raw.githubusercontent.com/brianerdelyi/ChessPGN/main/My%20Memorable%2060.pgn'
+  )
+  if (!response.ok) {
+    throw new Error('Failed to load PGN')
+  }
   const FULL_PGN = await response.text()
 
   const games: FischerGame[] = []
