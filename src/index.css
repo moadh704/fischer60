@@ -4,31 +4,81 @@
 
 :root {
   color-scheme: dark;
+  --chess-gold: #d4af37;
+  --chess-gold-dim: #c9a227;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #0a0a0a;
 }
 
-/* Custom scrollbar for game list */
-.game-list::-webkit-scrollbar {
-  width: 6px;
+/* Premium scrollbar */
+.game-list::-webkit-scrollbar,
+.move-list::-webkit-scrollbar {
+  width: 5px;
 }
-.game-list::-webkit-scrollbar-track {
-  background: #1a1a1a;
+.game-list::-webkit-scrollbar-track,
+.move-list::-webkit-scrollbar-track {
+  background: transparent;
 }
-.game-list::-webkit-scrollbar-thumb {
-  background: #3f3f3f;
-  border-radius: 3px;
+.game-list::-webkit-scrollbar-thumb,
+.move-list::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 10px;
 }
-.game-list::-webkit-scrollbar-thumb:hover {
+.game-list::-webkit-scrollbar-thumb:hover,
+.move-list::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
 
-/* Board container polish */
+/* Board container premium shadow */
 .board-container {
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  box-shadow:
+    0 0 0 1px rgba(212, 175, 55, 0.15),
+    0 25px 50px -12px rgba(0, 0, 0, 0.85),
+    0 0 80px -20px rgba(212, 175, 55, 0.08);
+}
+
+/* Smooth fade-in */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.35s ease-out forwards;
+}
+
+@keyframes pulse-gold {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-pulse-gold {
+  animation: pulse-gold 1.8s ease-in-out infinite;
+}
+
+/* Glass panel */
+.glass {
+  background: rgba(20, 20, 20, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Button press feel */
+.btn-press:active {
+  transform: scale(0.96);
+}
+
+/* Selected move highlight */
+.move-active {
+  background: rgba(212, 175, 55, 0.18);
+  color: #f0d78c;
+  border-radius: 4px;
 }
