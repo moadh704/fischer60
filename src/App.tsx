@@ -1,14 +1,35 @@
-import { useMemo, useState } from 'react'
-import { parseAllGames } from './lib/parseGames'
+import { useEffect, useState } from 'react'
+import { parseAllGames, FischerGame } from './lib/parseGames'
 import { GameList } from './components/GameList'
 import { BoardViewer } from './components/BoardViewer'
 
 function App() {
-  const games = useMemo(() => parseAllGames(), [])
+  const [games, setGames] = useState<FischerGame[]>([])
   const [selectedId, setSelectedId] = useState(1)
   const [search, setSearch] = useState('')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    parseAllGames()
+      .then(g => {
+        setGames(g)
+        setLoading(false)
+      })
+      .catch(err => {
+        console.error(err)
+        setLoading(false)
+      })
+  }, [])
 
   const selectedGame = games.find(g => g.id === selectedId) || null
+
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-chess-darker text-zinc-400">
+        Loading Fischer's 60 memorable games...
+      </div>
+    )
+  }
 
   return (
     <div className="h-screen flex flex-col bg-chess-darker">

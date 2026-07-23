@@ -1,5 +1,5 @@
 import { Chess } from 'chess.js'
-import { FULL_PGN, GAME_TITLES } from '../data/games'
+import { GAME_TITLES } from '../data/games'
 
 export interface FischerGame {
   id: number
@@ -15,9 +15,11 @@ export interface FischerGame {
   year: number
 }
 
-export function parseAllGames(): FischerGame[] {
+export async function parseAllGames(): Promise<FischerGame[]> {
+  const response = await fetch('./fischer60.pgn')
+  const FULL_PGN = await response.text()
+
   const games: FischerGame[] = []
-  // Split on double newline before [Event
   const rawGames = FULL_PGN.trim().split(/\n\n(?=\[Event)/)
 
   rawGames.forEach((raw, index) => {
