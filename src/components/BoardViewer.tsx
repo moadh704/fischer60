@@ -332,10 +332,7 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
                   </>
                 )}
                 <span className="text-zinc-700">·</span>
-                <span className={`font-semibold ${
-                  game.result === '1-0' ? 'text-emerald-400' :
-                  game.result === '0-1' ? 'text-rose-400' : 'text-zinc-300'
-                }`}>
+                <span className={'font-semibold ' + (game.result === '1-0' ? 'text-emerald-400' : game.result === '0-1' ? 'text-rose-400' : 'text-zinc-300')}>
                   {game.result}
                 </span>
               </p>
@@ -363,18 +360,14 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
                   <span className="text-zinc-600 text-right pr-1 select-none">{i + 1}.</span>
                   <button
                     onClick={() => goToMove(whiteIdx)}
-                    className={`text-left px-1.5 py-0.5 rounded transition ${
-                      moveIndex === whiteIdx ? 'move-active' : 'hover:bg-zinc-800/80 text-zinc-200'
-                    }`}
+                    className={'text-left px-1.5 py-0.5 rounded transition ' + (moveIndex === whiteIdx ? 'move-active' : 'hover:bg-zinc-800/80 text-zinc-200')}
                   >
                     {whiteMove}
                   </button>
                   {blackMove ? (
                     <button
                       onClick={() => goToMove(blackIdx)}
-                      className={`text-left px-1.5 py-0.5 rounded transition ${
-                        moveIndex === blackIdx ? 'move-active' : 'hover:bg-zinc-800/80 text-zinc-200'
-                      }`}
+                      className={'text-left px-1.5 py-0.5 rounded transition ' + (moveIndex === blackIdx ? 'move-active' : 'hover:bg-zinc-800/80 text-zinc-200')}
                     >
                       {blackMove}
                     </button>
