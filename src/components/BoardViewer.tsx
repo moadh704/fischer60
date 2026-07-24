@@ -180,7 +180,7 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
               {orientation === 'white' ? game.white : game.black}
             </span>
           </div>
-          <div className={`flex items-center gap-2 ${orientation === 'black' ? 'order-1' : ''`}>
+          <div className={`flex items-center gap-2 ${orientation === 'black' ? 'order-1' : ''}`}>
             <span className={isFischerWhite && orientation === 'black' || !isFischerWhite && orientation === 'white' ? 'text-chess-gold font-medium' : 'text-zinc-300'}>
               {orientation === 'white' ? game.black : game.white}
             </span>
