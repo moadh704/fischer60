@@ -240,11 +240,7 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
           </button>
           <button
             onClick={() => setAutoPlay(p => !p)}
-            className={`btn-press px-4 py-1.5 rounded-lg text-sm font-semibold transition ${
-              autoPlay
-                ? 'bg-chess-gold text-black shadow-gold-glow'
-                : 'bg-zinc-800/80 hover:bg-zinc-700'
-            }`}
+            className={'btn-press px-4 py-1.5 rounded-lg text-sm font-semibold transition ' + (autoPlay ? 'bg-chess-gold text-black shadow-gold-glow' : 'bg-zinc-800/80 hover:bg-zinc-700')}
             title="Play / Pause (Space)"
           >
             {autoPlay ? 'Pause' : 'Play'}
