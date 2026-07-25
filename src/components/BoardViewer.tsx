@@ -57,7 +57,7 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
   const boardRef = useRef<HTMLDivElement>(null)
 
   // Dynamically size the board to fit available viewport space
-  // (prevents the need to zoom out to see the full board + controls)
+  // so the full board + controls are always visible without needing to zoom out
   useEffect(() => {
     const updateBoardSize = () => {
       const isMd = window.innerWidth >= 768
@@ -69,19 +69,21 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
       const hPad = isXl ? 100 : 48
       const availableW = window.innerWidth - sidebar - hPad
 
-      // Vertical: header (~56) + names (~36) + captured (~28) + controls (~52) + move info (~40) + outer paddings (~48)
-      // Leave breathing room so nothing is clipped
-      const chromeH = 56 + 36 + 28 + 52 + 40 + 48
-      const availableH = window.innerHeight - chromeH
+      // Vertical chrome: header + names + captured + controls + move counter + paddings
+      const chromeH = 56 + 34 + 26 + 50 + 36 + 40
 
-      // Prefer square that fits both axes, cap at a nice max size
+      // On stacked layouts ( < xl ) reserve extra room for the move list panel below
+      const moveListReserve = isXl ? 0 : 180
+
+      const availableH = window.innerHeight - chromeH - moveListReserve
+
+      // Prefer a square that fits both axes, with a sensible max
       const size = Math.floor(Math.min(availableW, availableH, 560))
       setBoardWidth(Math.max(260, size))
     }
 
     updateBoardSize()
     window.addEventListener('resize', updateBoardSize)
-    // Also listen for orientation changes on mobile
     window.addEventListener('orientationchange', updateBoardSize)
     return () => {
       window.removeEventListener('resize', updateBoardSize)
