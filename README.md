@@ -28,32 +28,10 @@
 
 ## Sounds
 
-Place the following files in `public/sounds/`:
+Sounds are loaded automatically from a public source (Chess.com-style effects).
+No local files required — just works after deploy.
 
-| File | Description |
-|------|-------------|
-| `move.mp3` | Regular piece move |
-| `capture.mp3` | Capture / en passant |
-| `check.mp3` | Check |
-| `castle.mp3` | Castling |
-| `promote.mp3` | Pawn promotion |
-
-**Recommended free source (Chess.com-style):**
-
-```bash
-# Clone the repo or download the mp3s
-git clone https://github.com/harrenray/Chess-Sounds.git
-# Then rename/copy:
-# move-self.mp3 → public/sounds/move.mp3
-# capture.mp3   → public/sounds/capture.mp3
-# move-check.mp3 → public/sounds/check.mp3
-# castle.mp3    → public/sounds/castle.mp3
-# promote.mp3   → public/sounds/promote.mp3
-```
-
-Alternative free packs: Lichess “piano” / “sfx” themes (AGPL) or Kenney UI Audio.
-
-If the files are missing the player fails silently (no console spam).
+Mute with the 🔊 button or press **M**.
 
 ## Local development
 

@@ -45,6 +45,15 @@ const PIECE_SYMBOLS: Record<string, string> = {
 
 type SoundType = 'move' | 'capture' | 'check' | 'castle' | 'promote'
 
+// Public Chess.com-style sounds (no need to host the files yourself)
+const SOUND_URLS: Record<SoundType, string> = {
+  move:    'https://raw.githubusercontent.com/harrenray/Chess-Sounds/main/move-self.mp3',
+  capture: 'https://raw.githubusercontent.com/harrenray/Chess-Sounds/main/capture.mp3',
+  check:   'https://raw.githubusercontent.com/harrenray/Chess-Sounds/main/move-check.mp3',
+  castle:  'https://raw.githubusercontent.com/harrenray/Chess-Sounds/main/castle.mp3',
+  promote: 'https://raw.githubusercontent.com/harrenray/Chess-Sounds/main/promote.mp3',
+}
+
 export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: Props) {
   const [chess] = useState(() => new Chess())
   const [fen, setFen] = useState('start')
@@ -66,11 +75,10 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
     soundEnabledRef.current = soundEnabled
   }, [soundEnabled])
 
-  // Preload sounds once
+  // Preload sounds once from public CDN
   useEffect(() => {
-    const types: SoundType[] = ['move', 'capture', 'check', 'castle', 'promote']
-    types.forEach(type => {
-      const audio = new Audio(`/sounds/${type}.mp3`)
+    (Object.keys(SOUND_URLS) as SoundType[]).forEach(type => {
+      const audio = new Audio(SOUND_URLS[type])
       audio.preload = 'auto'
       audio.volume = 0.55
       audioCache.current[type] = audio
@@ -85,32 +93,24 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
       audio.currentTime = 0
       void audio.play()
     } catch {
-      // Autoplay policy or missing file – silent fail
+      // Autoplay policy or network issue – silent fail
     }
   }, [])
 
   // Dynamically size the board to fit available viewport space
-  // so the full board + controls are always visible without needing to zoom out
   useEffect(() => {
     const updateBoardSize = () => {
       const isMd = window.innerWidth >= 768
       const isXl = window.innerWidth >= 1280
 
-      // Account for sidebar on desktop
       const sidebar = isMd ? 300 : 0
-      // Horizontal padding + gaps
       const hPad = isXl ? 100 : 48
       const availableW = window.innerWidth - sidebar - hPad
 
-      // Vertical chrome: header + names + captured + controls + move counter + paddings
       const chromeH = 56 + 34 + 26 + 50 + 36 + 40
-
-      // On stacked layouts ( < xl ) reserve extra room for the move list panel below
       const moveListReserve = isXl ? 0 : 180
-
       const availableH = window.innerHeight - chromeH - moveListReserve
 
-      // Prefer a square that fits both axes, with a sensible max
       const size = Math.floor(Math.min(availableW, availableH, 560))
       setBoardWidth(Math.max(260, size))
     }
@@ -164,7 +164,7 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
     setMoveIndex(index)
     setLastMove(lastFromTo)
 
-    // Play sound only when advancing (forward navigation / autoplay / jump to later move)
+    // Play sound only when advancing
     if (index > previousIndex && lastResult) {
       const flags = lastResult.flags
 
@@ -178,9 +178,7 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
         playSound('move')
       }
 
-      // Check / checkmate overlay
       if (chess.isCheck()) {
-        // Small delay so the base move sound is heard first
         setTimeout(() => playSound('check'), 70)
       }
     }
@@ -293,7 +291,7 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
           </div>
         </div>
 
-        {/* The board - sized to available space */}
+        {/* The board */}
         <div
           ref={boardRef}
           className="board-container rounded-xl overflow-hidden"
