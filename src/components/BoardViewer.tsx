@@ -43,6 +43,8 @@ const PIECE_SYMBOLS: Record<string, string> = {
   p: '♟', n: '♞', b: '♝', r: '♜', q: '♛',
 }
 
+type SoundType = 'move' | 'capture' | 'check' | 'castle' | 'promote'
+
 export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: Props) {
   const [chess] = useState(() => new Chess())
   const [fen, setFen] = useState('start')
@@ -54,7 +56,38 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null)
   const [copied, setCopied] = useState(false)
   const [boardWidth, setBoardWidth] = useState(420)
+  const [soundEnabled, setSoundEnabled] = useState(true)
   const boardRef = useRef<HTMLDivElement>(null)
+  const soundEnabledRef = useRef(true)
+  const audioCache = useRef<Partial<Record<SoundType, HTMLAudioElement>>>({})
+
+  // Keep ref in sync so callbacks always see latest preference
+  useEffect(() => {
+    soundEnabledRef.current = soundEnabled
+  }, [soundEnabled])
+
+  // Preload sounds once
+  useEffect(() => {
+    const types: SoundType[] = ['move', 'capture', 'check', 'castle', 'promote']
+    types.forEach(type => {
+      const audio = new Audio(`/sounds/${type}.mp3`)
+      audio.preload = 'auto'
+      audio.volume = 0.55
+      audioCache.current[type] = audio
+    })
+  }, [])
+
+  const playSound = useCallback((type: SoundType) => {
+    if (!soundEnabledRef.current) return
+    const audio = audioCache.current[type]
+    if (!audio) return
+    try {
+      audio.currentTime = 0
+      void audio.play()
+    } catch {
+      // Autoplay policy or missing file – silent fail
+    }
+  }, [])
 
   // Dynamically size the board to fit available viewport space
   // so the full board + controls are always visible without needing to zoom out
@@ -112,19 +145,46 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
 
   const goToMove = useCallback((index: number) => {
     if (!game) return
+
+    const previousIndex = moveIndex
     chess.reset()
     const moves = history.slice(0, index)
     let lastFromTo: { from: string; to: string } | null = null
+    let lastResult: ReturnType<Chess['move']> | null = null
+
     for (const m of moves) {
       const result = chess.move(m)
       if (result) {
         lastFromTo = { from: result.from, to: result.to }
+        lastResult = result
       }
     }
+
     setFen(chess.fen())
     setMoveIndex(index)
     setLastMove(lastFromTo)
-  }, [chess, history, game])
+
+    // Play sound only when advancing (forward navigation / autoplay / jump to later move)
+    if (index > previousIndex && lastResult) {
+      const flags = lastResult.flags
+
+      if (flags.includes('c') || flags.includes('e')) {
+        playSound('capture')
+      } else if (flags.includes('k') || flags.includes('q')) {
+        playSound('castle')
+      } else if (flags.includes('p')) {
+        playSound('promote')
+      } else {
+        playSound('move')
+      }
+
+      // Check / checkmate overlay
+      if (chess.isCheck()) {
+        // Small delay so the base move sound is heard first
+        setTimeout(() => playSound('check'), 70)
+      }
+    }
+  }, [chess, history, game, moveIndex, playSound])
 
   useEffect(() => {
     if (!autoPlay || moveIndex >= history.length) {
@@ -172,6 +232,10 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
         case 'p':
         case 'P':
           if (hasPrev && onPrevGame) onPrevGame()
+          break
+        case 'm':
+        case 'M':
+          setSoundEnabled(s => !s)
           break
       }
     }
@@ -330,6 +394,14 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
             ↻
           </button>
 
+          <button
+            onClick={() => setSoundEnabled(s => !s)}
+            className={'btn-press px-2.5 py-1.5 rounded-lg text-sm transition ' + (soundEnabled ? 'bg-zinc-800/80 hover:bg-zinc-700' : 'bg-zinc-900 text-zinc-500')}
+            title="Toggle sound (M)"
+          >
+            {soundEnabled ? '🔊' : '🔇'}
+          </button>
+
           <select
             value={speed}
             onChange={e => setSpeed(Number(e.target.value))}
@@ -351,7 +423,7 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
         </p>
 
         <p className="text-[10px] text-zinc-600 mt-0.5 hidden sm:block">
-          ← → moves · Space play · F flip · N/P games
+          ← → moves · Space play · F flip · M sound · N/P games
         </p>
       </div>
 
