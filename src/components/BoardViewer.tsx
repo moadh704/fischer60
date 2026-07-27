@@ -53,6 +53,13 @@ const SOUND_URLS: Record<SoundType, string> = {
   promote: 'https://raw.githubusercontent.com/harrenray/Chess-Sounds/main/promote.mp3',
 }
 
+/** Force size to be a clean multiple of 8 so every square is an integer number of pixels.
+ *  This prevents the classic "pieces drift / board corrupts under browser zoom" bug. */
+function snapToSquareGrid(size: number): number {
+  const snapped = Math.floor(size / 8) * 8
+  return Math.max(256, Math.min(560, snapped))
+}
+
 export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: Props) {
   const [chess] = useState(() => new Chess())
   const [fen, setFen] = useState('start')
@@ -63,9 +70,10 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
   const [history, setHistory] = useState<string[]>([])
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null)
   const [copied, setCopied] = useState(false)
-  const [boardWidth, setBoardWidth] = useState(420)
+  const [boardWidth, setBoardWidth] = useState(400)
   const [soundEnabled, setSoundEnabled] = useState(true)
-  const boardRef = useRef<HTMLDivElement>(null)
+
+  const boardWrapperRef = useRef<HTMLDivElement>(null)
   const soundEnabledRef = useRef(true)
   const audioCache = useRef<Partial<Record<SoundType, HTMLAudioElement>>>({})
 
@@ -90,30 +98,37 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
       audio.currentTime = 0
       void audio.play()
     } catch {
-      // ignore autoplay / network errors
+      // ignore
     }
   }, [])
 
+  // Robust sizing with ResizeObserver + force multiple of 8
   useEffect(() => {
-    const updateBoardSize = () => {
-      const isMd = window.innerWidth >= 768
-      const isXl = window.innerWidth >= 1280
-      const sidebar = isMd ? 300 : 0
-      const hPad = isXl ? 100 : 48
-      const availableW = window.innerWidth - sidebar - hPad
-      const chromeH = 56 + 34 + 26 + 50 + 36 + 40
-      const moveListReserve = isXl ? 0 : 180
-      const availableH = window.innerHeight - chromeH - moveListReserve
-      const size = Math.floor(Math.min(availableW, availableH, 560))
-      setBoardWidth(Math.max(260, size))
+    const el = boardWrapperRef.current
+    if (!el) return
+
+    const update = () => {
+      // Available space for the board itself (the wrapper is already constrained by CSS)
+      const available = Math.min(el.clientWidth, el.clientHeight || el.clientWidth)
+      const next = snapToSquareGrid(available)
+      setBoardWidth((prev) => (prev === next ? prev : next))
     }
 
-    updateBoardSize()
-    window.addEventListener('resize', updateBoardSize)
-    window.addEventListener('orientationchange', updateBoardSize)
+    // Initial measurement
+    update()
+
+    const ro = new ResizeObserver(() => {
+      // Small debounce so rapid zoom / resize doesn't thrash
+      requestAnimationFrame(update)
+    })
+    ro.observe(el)
+
+    // Also listen to window resize (covers some browser zoom edge cases)
+    window.addEventListener('resize', update)
+
     return () => {
-      window.removeEventListener('resize', updateBoardSize)
-      window.removeEventListener('orientationchange', updateBoardSize)
+      ro.disconnect()
+      window.removeEventListener('resize', update)
     }
   }, [])
 
@@ -184,9 +199,7 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
       if (moveIndex >= history.length) setAutoPlay(false)
       return
     }
-    const t = setTimeout(() => {
-      goToMove(moveIndex + 1)
-    }, speed)
+    const t = setTimeout(() => goToMove(moveIndex + 1), speed)
     return () => clearTimeout(t)
   }, [autoPlay, moveIndex, history.length, goToMove, speed])
 
@@ -265,10 +278,12 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
 
   return (
     <div className="flex-1 flex flex-col xl:flex-row gap-4 lg:gap-5 p-3 sm:p-4 lg:p-5 overflow-hidden animate-fade-in">
-      <div className="flex flex-col items-center shrink-0">
+      {/* Board column */}
+      <div className="flex flex-col items-center shrink-0 w-full max-w-[560px]">
+        {/* Player names */}
         <div
-          className="mb-2 flex items-center justify-between text-sm"
-          style={{ width: boardWidth }}
+          className="mb-2 flex items-center justify-between text-sm w-full"
+          style={{ maxWidth: boardWidth }}
         >
           <div className={`flex items-center gap-2 ${orientation === 'black' ? 'order-2' : ''}`}>
             <span className="w-2.5 h-2.5 rounded-full bg-zinc-200" />
@@ -282,7 +297,7 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
               {orientation === 'white' ? game.white : game.black}
             </span>
           </div>
-          <div className={`flex items-center gap-2 ${orientation === 'black' ? 'order-1' : ''}`}>
+          <div className={`flex items-center gap-2 ${orientation === 'black' ? 'order-1' : ''`}>
             <span
               className={
                 (isFischerWhite && orientation === 'black') || (!isFischerWhite && orientation === 'white')
@@ -296,28 +311,43 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
           </div>
         </div>
 
+        {/*
+          Outer wrapper that we measure with ResizeObserver.
+          It takes the full available width of the column (capped at 560px).
+          The actual Chessboard is forced to a clean multiple of 8.
+        */}
         <div
-          ref={boardRef}
-          className="board-container rounded-xl overflow-hidden"
-          style={{ width: boardWidth, height: boardWidth }}
+          ref={boardWrapperRef}
+          className="w-full aspect-square max-w-[560px] flex items-center justify-center"
         >
-          <Chessboard
-            position={fen}
-            boardOrientation={orientation}
-            boardWidth={boardWidth}
-            arePiecesDraggable={false}
-            customBoardStyle={{
-              borderRadius: '12px',
+          <div
+            className="board-container rounded-xl overflow-hidden"
+            style={{
+              width: boardWidth,
+              height: boardWidth,
+              // Prevent sub-pixel blur under zoom
+              transform: 'translateZ(0)',
             }}
-            customDarkSquareStyle={{ backgroundColor: '#779952' }}
-            customLightSquareStyle={{ backgroundColor: '#ebecd0' }}
-            customSquareStyles={customSquareStyles}
-          />
+          >
+            <Chessboard
+              position={fen}
+              boardOrientation={orientation}
+              boardWidth={boardWidth}
+              arePiecesDraggable={false}
+              customBoardStyle={{
+                borderRadius: '12px',
+              }}
+              customDarkSquareStyle={{ backgroundColor: '#779952' }}
+              customLightSquareStyle={{ backgroundColor: '#ebecd0' }}
+              customSquareStyles={customSquareStyles}
+            />
+          </div>
         </div>
 
+        {/* Captured pieces */}
         <div
-          className="mt-2 flex justify-between text-lg leading-none tracking-tight"
-          style={{ width: boardWidth }}
+          className="mt-2 flex justify-between text-lg leading-none tracking-tight w-full"
+          style={{ maxWidth: boardWidth }}
         >
           <div className="flex gap-0.5 text-zinc-400 min-h-[1.3rem]">
             {(orientation === 'white' ? blackCaptured : whiteCaptured).map((p, i) => (
@@ -335,6 +365,7 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
           </div>
         </div>
 
+        {/* Controls */}
         <div className="flex items-center gap-1.5 mt-3 flex-wrap justify-center max-w-full px-1">
           <button
             onClick={() => onPrevGame?.()}
@@ -439,6 +470,7 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
         </p>
       </div>
 
+      {/* Game info + moves */}
       <div className="flex-1 min-w-0 flex flex-col max-w-lg min-h-0">
         <div className="mb-3 shrink-0">
           <div className="flex items-start justify-between gap-3">
