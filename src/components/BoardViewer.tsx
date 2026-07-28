@@ -53,11 +53,10 @@ const SOUND_URLS: Record<SoundType, string> = {
   promote: 'https://raw.githubusercontent.com/harrenray/Chess-Sounds/main/promote.mp3',
 }
 
-/** Force size to be a clean multiple of 8 so every square is an integer number of pixels.
- *  This prevents the classic "pieces drift / board corrupts under browser zoom" bug. */
+/** Keep board size a clean multiple of 8 to avoid zoom artifacts. */
 function snapToSquareGrid(size: number): number {
   const snapped = Math.floor(size / 8) * 8
-  return Math.max(256, Math.min(560, snapped))
+  return Math.max(240, Math.min(560, snapped))
 }
 
 export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: Props) {
@@ -70,7 +69,7 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
   const [history, setHistory] = useState<string[]>([])
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null)
   const [copied, setCopied] = useState(false)
-  const [boardWidth, setBoardWidth] = useState(400)
+  const [boardWidth, setBoardWidth] = useState(320)
   const [soundEnabled, setSoundEnabled] = useState(true)
 
   const boardWrapperRef = useRef<HTMLDivElement>(null)
@@ -102,28 +101,21 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
     }
   }, [])
 
-  // Robust sizing with ResizeObserver + force multiple of 8
+  // Robust sizing with ResizeObserver + multiple of 8
   useEffect(() => {
     const el = boardWrapperRef.current
     if (!el) return
 
     const update = () => {
-      // Available space for the board itself (the wrapper is already constrained by CSS)
       const available = Math.min(el.clientWidth, el.clientHeight || el.clientWidth)
       const next = snapToSquareGrid(available)
       setBoardWidth((prev) => (prev === next ? prev : next))
     }
 
-    // Initial measurement
     update()
 
-    const ro = new ResizeObserver(() => {
-      // Small debounce so rapid zoom / resize doesn't thrash
-      requestAnimationFrame(update)
-    })
+    const ro = new ResizeObserver(() => requestAnimationFrame(update))
     ro.observe(el)
-
-    // Also listen to window resize (covers some browser zoom edge cases)
     window.addEventListener('resize', update)
 
     return () => {
@@ -268,7 +260,7 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
 
   if (!game) {
     return (
-      <div className="flex-1 flex items-center justify-center text-zinc-500">
+      <div className="flex-1 flex items-center justify-center text-zinc-500 px-4">
         Select a game to begin
       </div>
     )
@@ -277,55 +269,50 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
   const isFischerWhite = game.white.includes('Fischer')
 
   return (
-    <div className="flex-1 flex flex-col xl:flex-row gap-4 lg:gap-5 p-3 sm:p-4 lg:p-5 overflow-hidden animate-fade-in">
-      {/* Board column */}
-      <div className="flex flex-col items-center shrink-0 w-full max-w-[560px]">
-        {/* Player names */}
+    <div className="flex-1 flex flex-col xl:flex-row gap-3 sm:gap-4 lg:gap-5 p-2 sm:p-3 lg:p-5 overflow-hidden animate-fade-in">
+      {/* ===== BOARD COLUMN ===== */}
+      <div className="flex flex-col items-center shrink-0 w-full xl:w-auto xl:max-w-[560px]">
+        {/* Player names - compact on mobile */}
         <div
-          className="mb-2 flex items-center justify-between text-sm w-full"
+          className="mb-1.5 sm:mb-2 flex items-center justify-between text-xs sm:text-sm w-full px-0.5"
           style={{ maxWidth: boardWidth }}
         >
-          <div className={`flex items-center gap-2 ${orientation === 'black' ? 'order-2' : ''}`}>
-            <span className="w-2.5 h-2.5 rounded-full bg-zinc-200" />
+          <div className={`flex items-center gap-1.5 min-w-0 ${orientation === 'black' ? 'order-2' : ''}`}>
+            <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-zinc-200 shrink-0" />
             <span
-              className={
+              className={`truncate ${
                 (isFischerWhite && orientation === 'white') || (!isFischerWhite && orientation === 'black')
                   ? 'text-chess-gold font-medium'
                   : 'text-zinc-300'
-              }
+              }`}
             >
               {orientation === 'white' ? game.white : game.black}
             </span>
           </div>
-          <div className={`flex items-center gap-2 ${orientation === 'black' ? 'order-1' : ''`}>
+          <div className={`flex items-center gap-1.5 min-w-0 ${orientation === 'black' ? 'order-1' : ''`}>
             <span
-              className={
+              className={`truncate text-right ${
                 (isFischerWhite && orientation === 'black') || (!isFischerWhite && orientation === 'white')
                   ? 'text-chess-gold font-medium'
                   : 'text-zinc-300'
-              }
+              }`}
             >
               {orientation === 'white' ? game.black : game.white}
             </span>
-            <span className="w-2.5 h-2.5 rounded-full bg-zinc-700 border border-zinc-500" />
+            <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-zinc-700 border border-zinc-500 shrink-0" />
           </div>
         </div>
 
-        {/*
-          Outer wrapper that we measure with ResizeObserver.
-          It takes the full available width of the column (capped at 560px).
-          The actual Chessboard is forced to a clean multiple of 8.
-        */}
+        {/* Board */}
         <div
           ref={boardWrapperRef}
           className="w-full aspect-square max-w-[560px] flex items-center justify-center"
         >
           <div
-            className="board-container rounded-xl overflow-hidden"
+            className="board-container rounded-lg sm:rounded-xl overflow-hidden"
             style={{
               width: boardWidth,
               height: boardWidth,
-              // Prevent sub-pixel blur under zoom
               transform: 'translateZ(0)',
             }}
           >
@@ -335,7 +322,7 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
               boardWidth={boardWidth}
               arePiecesDraggable={false}
               customBoardStyle={{
-                borderRadius: '12px',
+                borderRadius: '8px',
               }}
               customDarkSquareStyle={{ backgroundColor: '#779952' }}
               customLightSquareStyle={{ backgroundColor: '#ebecd0' }}
@@ -346,17 +333,17 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
 
         {/* Captured pieces */}
         <div
-          className="mt-2 flex justify-between text-lg leading-none tracking-tight w-full"
+          className="mt-1.5 sm:mt-2 flex justify-between text-base sm:text-lg leading-none tracking-tight w-full px-0.5"
           style={{ maxWidth: boardWidth }}
         >
-          <div className="flex gap-0.5 text-zinc-400 min-h-[1.3rem]">
+          <div className="flex gap-0.5 text-zinc-400 min-h-[1.2rem]">
             {(orientation === 'white' ? blackCaptured : whiteCaptured).map((p, i) => (
               <span key={i} className="opacity-80">
                 {PIECE_SYMBOLS[p] || p}
               </span>
             ))}
           </div>
-          <div className="flex gap-0.5 text-zinc-300 min-h-[1.3rem]">
+          <div className="flex gap-0.5 text-zinc-300 min-h-[1.2rem]">
             {(orientation === 'white' ? whiteCaptured : blackCaptured).map((p, i) => (
               <span key={i} className="opacity-90">
                 {PIECE_SYMBOLS[p] || p}
@@ -365,26 +352,26 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
           </div>
         </div>
 
-        {/* Controls */}
-        <div className="flex items-center gap-1.5 mt-3 flex-wrap justify-center max-w-full px-1">
+        {/* Controls - more compact + better touch targets on mobile */}
+        <div className="flex items-center gap-1 sm:gap-1.5 mt-2 sm:mt-3 flex-wrap justify-center max-w-full">
           <button
             onClick={() => onPrevGame?.()}
             disabled={!hasPrev}
-            className="btn-press px-2.5 py-1.5 bg-zinc-800/80 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg text-sm transition"
+            className="btn-press min-w-[36px] h-9 sm:h-auto px-2 sm:px-2.5 py-1.5 bg-zinc-800/80 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg text-sm transition active:scale-95"
             title="Previous game (P)"
           >
             ‹‹
           </button>
           <button
             onClick={() => goToMove(0)}
-            className="btn-press px-2.5 py-1.5 bg-zinc-800/80 hover:bg-zinc-700 rounded-lg text-sm transition"
+            className="btn-press min-w-[36px] h-9 sm:h-auto px-2 sm:px-2.5 py-1.5 bg-zinc-800/80 hover:bg-zinc-700 rounded-lg text-sm transition active:scale-95"
             title="Start (Home)"
           >
             ⏮
           </button>
           <button
             onClick={() => goToMove(Math.max(0, moveIndex - 1))}
-            className="btn-press px-3 py-1.5 bg-zinc-800/80 hover:bg-zinc-700 rounded-lg text-sm transition"
+            className="btn-press min-w-[40px] h-9 sm:h-auto px-2.5 sm:px-3 py-1.5 bg-zinc-800/80 hover:bg-zinc-700 rounded-lg text-sm transition active:scale-95"
             title="Previous move (←)"
           >
             ◀
@@ -392,7 +379,7 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
           <button
             onClick={() => setAutoPlay((p) => !p)}
             className={
-              'btn-press px-4 py-1.5 rounded-lg text-sm font-semibold transition ' +
+              'btn-press min-w-[64px] h-9 sm:h-auto px-3 sm:px-4 py-1.5 rounded-lg text-sm font-semibold transition active:scale-95 ' +
               (autoPlay ? 'bg-chess-gold text-black shadow-gold-glow' : 'bg-zinc-800/80 hover:bg-zinc-700')
             }
             title="Play / Pause (Space)"
@@ -401,14 +388,14 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
           </button>
           <button
             onClick={() => goToMove(Math.min(history.length, moveIndex + 1))}
-            className="btn-press px-3 py-1.5 bg-zinc-800/80 hover:bg-zinc-700 rounded-lg text-sm transition"
+            className="btn-press min-w-[40px] h-9 sm:h-auto px-2.5 sm:px-3 py-1.5 bg-zinc-800/80 hover:bg-zinc-700 rounded-lg text-sm transition active:scale-95"
             title="Next move (→)"
           >
             ▶
           </button>
           <button
             onClick={() => goToMove(history.length)}
-            className="btn-press px-2.5 py-1.5 bg-zinc-800/80 hover:bg-zinc-700 rounded-lg text-sm transition"
+            className="btn-press min-w-[36px] h-9 sm:h-auto px-2 sm:px-2.5 py-1.5 bg-zinc-800/80 hover:bg-zinc-700 rounded-lg text-sm transition active:scale-95"
             title="End (End)"
           >
             ⏭
@@ -416,17 +403,17 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
           <button
             onClick={() => onNextGame?.()}
             disabled={!hasNext}
-            className="btn-press px-2.5 py-1.5 bg-zinc-800/80 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg text-sm transition"
+            className="btn-press min-w-[36px] h-9 sm:h-auto px-2 sm:px-2.5 py-1.5 bg-zinc-800/80 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg text-sm transition active:scale-95"
             title="Next game (N)"
           >
             ››
           </button>
 
-          <div className="w-px h-5 bg-zinc-700 mx-1" />
+          <div className="w-px h-5 bg-zinc-700 mx-0.5 hidden xs:block" />
 
           <button
             onClick={() => setOrientation((o) => (o === 'white' ? 'black' : 'white'))}
-            className="btn-press px-2.5 py-1.5 bg-zinc-800/80 hover:bg-zinc-700 rounded-lg text-sm transition"
+            className="btn-press min-w-[36px] h-9 sm:h-auto px-2 sm:px-2.5 py-1.5 bg-zinc-800/80 hover:bg-zinc-700 rounded-lg text-sm transition active:scale-95"
             title="Flip board (F)"
           >
             ↻
@@ -435,7 +422,7 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
           <button
             onClick={() => setSoundEnabled((s) => !s)}
             className={
-              'btn-press px-2.5 py-1.5 rounded-lg text-sm transition ' +
+              'btn-press min-w-[36px] h-9 sm:h-auto px-2 sm:px-2.5 py-1.5 rounded-lg text-sm transition active:scale-95 ' +
               (soundEnabled ? 'bg-zinc-800/80 hover:bg-zinc-700' : 'bg-zinc-900 text-zinc-500')
             }
             title="Toggle sound (M)"
@@ -446,7 +433,7 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
           <select
             value={speed}
             onChange={(e) => setSpeed(Number(e.target.value))}
-            className="bg-zinc-800/80 border border-zinc-700 text-xs rounded-lg px-2 py-1.5 text-zinc-300 focus:outline-none focus:ring-1 focus:ring-chess-gold"
+            className="h-9 sm:h-auto bg-zinc-800/80 border border-zinc-700 text-xs rounded-lg px-1.5 sm:px-2 py-1.5 text-zinc-300 focus:outline-none focus:ring-1 focus:ring-chess-gold"
             title="Autoplay speed"
           >
             <option value={1400}>Slow</option>
@@ -456,7 +443,7 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
           </select>
         </div>
 
-        <p className="text-xs text-zinc-500 mt-2 flex items-center gap-2">
+        <p className="text-xs text-zinc-500 mt-1.5 sm:mt-2 flex items-center gap-2">
           <span>
             Move {moveIndex} / {history.length}
           </span>
@@ -470,27 +457,28 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
         </p>
       </div>
 
-      {/* Game info + moves */}
-      <div className="flex-1 min-w-0 flex flex-col max-w-lg min-h-0">
-        <div className="mb-3 shrink-0">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h1 className="text-xl lg:text-2xl font-bold text-white leading-tight tracking-tight">
+      {/* ===== GAME INFO + MOVES ===== */}
+      <div className="flex-1 min-w-0 flex flex-col min-h-0 xl:max-w-lg">
+        {/* Title block - more compact on mobile */}
+        <div className="mb-2 sm:mb-3 shrink-0 px-0.5">
+          <div className="flex items-start justify-between gap-2 sm:gap-3">
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-white leading-tight tracking-tight truncate">
                 <span className="text-chess-gold">#{game.id}</span>
-                <span className="mx-2 text-zinc-600">·</span>
+                <span className="mx-1.5 sm:mx-2 text-zinc-600">·</span>
                 {game.title}
               </h1>
-              <p className="text-zinc-400 mt-1.5 text-sm">
+              <p className="text-zinc-400 mt-1 text-xs sm:text-sm truncate">
                 <span className={isFischerWhite ? 'text-chess-gold-light font-medium' : ''}>
                   {game.white}
                 </span>
-                <span className="text-zinc-600 mx-1.5">vs</span>
+                <span className="text-zinc-600 mx-1">vs</span>
                 <span className={!isFischerWhite ? 'text-chess-gold-light font-medium' : ''}>
                   {game.black}
                 </span>
               </p>
-              <p className="text-zinc-500 text-sm mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                <span>{game.event}</span>
+              <p className="text-zinc-500 text-xs sm:text-sm mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                <span className="truncate max-w-[140px] sm:max-w-none">{game.event}</span>
                 <span className="text-zinc-700">·</span>
                 <span>{game.date}</span>
                 {game.eco && (
@@ -517,16 +505,17 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
 
             <button
               onClick={copyPgn}
-              className="btn-press shrink-0 px-3 py-1.5 text-xs bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-700 rounded-lg transition"
+              className="btn-press shrink-0 px-2.5 sm:px-3 py-1.5 text-xs bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-700 rounded-lg transition active:scale-95"
               title="Copy PGN"
             >
-              {copied ? '✓ Copied' : 'Copy PGN'}
+              {copied ? '✓' : 'PGN'}
             </button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto move-list glass rounded-xl p-3.5 min-h-0">
-          <div className="grid grid-cols-[auto_1fr_1fr] gap-x-2 gap-y-0.5 text-sm font-mono">
+        {/* Move list - takes remaining height */}
+        <div className="flex-1 overflow-y-auto move-list glass rounded-xl p-2.5 sm:p-3.5 min-h-[140px] sm:min-h-0">
+          <div className="grid grid-cols-[auto_1fr_1fr] gap-x-1.5 sm:gap-x-2 gap-y-0.5 text-sm font-mono">
             {Array.from({ length: Math.ceil(history.length / 2) }).map((_, i) => {
               const whiteMove = history[i * 2]
               const blackMove = history[i * 2 + 1]
@@ -534,11 +523,13 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
               const blackIdx = i * 2 + 2
               return (
                 <div key={i} className="contents">
-                  <span className="text-zinc-600 text-right pr-1 select-none">{i + 1}.</span>
+                  <span className="text-zinc-600 text-right pr-0.5 sm:pr-1 select-none text-xs sm:text-sm">
+                    {i + 1}.
+                  </span>
                   <button
                     onClick={() => goToMove(whiteIdx)}
                     className={
-                      'text-left px-1.5 py-0.5 rounded transition ' +
+                      'text-left px-1 sm:px-1.5 py-0.5 rounded transition active:scale-95 ' +
                       (moveIndex === whiteIdx ? 'move-active' : 'hover:bg-zinc-800/80 text-zinc-200')
                     }
                   >
@@ -548,7 +539,7 @@ export function BoardViewer({ game, onPrevGame, onNextGame, hasPrev, hasNext }: 
                     <button
                       onClick={() => goToMove(blackIdx)}
                       className={
-                        'text-left px-1.5 py-0.5 rounded transition ' +
+                        'text-left px-1 sm:px-1.5 py-0.5 rounded transition active:scale-95 ' +
                         (moveIndex === blackIdx ? 'move-active' : 'hover:bg-zinc-800/80 text-zinc-200')
                       }
                     >

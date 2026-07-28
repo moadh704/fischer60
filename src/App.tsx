@@ -13,11 +13,11 @@ function App() {
 
   useEffect(() => {
     parseAllGames()
-      .then(g => {
+      .then((g) => {
         setGames(g)
         setLoading(false)
       })
-      .catch(err => {
+      .catch((err) => {
         console.error(err)
         setError('Failed to load the games. Please refresh.')
         setLoading(false)
@@ -25,12 +25,12 @@ function App() {
   }, [])
 
   const selectedGame = useMemo(
-    () => games.find(g => g.id === selectedId) || null,
+    () => games.find((g) => g.id === selectedId) || null,
     [games, selectedId]
   )
 
   const currentIndex = useMemo(
-    () => games.findIndex(g => g.id === selectedId),
+    () => games.findIndex((g) => g.id === selectedId),
     [games, selectedId]
   )
 
@@ -43,7 +43,7 @@ function App() {
 
   if (loading) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-chess-darker text-zinc-400 gap-4">
+      <div className="h-[100dvh] flex flex-col items-center justify-center bg-chess-darker text-zinc-400 gap-4 px-4">
         <div className="w-14 h-14 rounded-2xl bg-chess-gold/10 border border-chess-gold/30 flex items-center justify-center text-3xl animate-pulse-gold">
           ♔
         </div>
@@ -57,36 +57,38 @@ function App() {
 
   if (error) {
     return (
-      <div className="h-screen flex items-center justify-center bg-chess-darker text-rose-400">
+      <div className="h-[100dvh] flex items-center justify-center bg-chess-darker text-rose-400 px-4 text-center">
         {error}
       </div>
     )
   }
 
   return (
-    <div className="h-screen flex flex-col bg-chess-darker">
+    <div className="h-[100dvh] flex flex-col bg-chess-darker overflow-hidden">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 lg:px-6 py-3 border-b border-zinc-800/80 bg-chess-dark/90 backdrop-blur-md shrink-0 z-20">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-chess-gold to-chess-gold-dim flex items-center justify-center text-black font-bold text-lg shadow-gold-glow">
+      <header className="flex items-center justify-between px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 border-b border-zinc-800/80 bg-chess-dark/90 backdrop-blur-md shrink-0 z-20">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-chess-gold to-chess-gold-dim flex items-center justify-center text-black font-bold text-base sm:text-lg shadow-gold-glow shrink-0">
             ♔
           </div>
-          <div>
-            <h1 className="text-lg font-bold tracking-tight text-white leading-none">
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-lg font-bold tracking-tight text-white leading-none truncate">
               Fischer<span className="text-chess-gold">60</span>
             </h1>
-            <p className="text-[11px] text-zinc-500 mt-0.5 tracking-wide">My 60 Memorable Games</p>
+            <p className="text-[10px] sm:text-[11px] text-zinc-500 mt-0.5 tracking-wide hidden xs:block">
+              My 60 Memorable Games
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <div className="text-xs text-zinc-500 hidden sm:block tracking-wide">
             Bobby Fischer · 1957–1967
           </div>
           {/* Mobile list toggle */}
           <button
             onClick={() => setShowMobileList(true)}
-            className="md:hidden px-3 py-1.5 text-xs bg-zinc-800 hover:bg-zinc-700 rounded-lg border border-zinc-700 transition"
+            className="md:hidden px-3 py-1.5 text-xs font-medium bg-zinc-800 hover:bg-zinc-700 active:scale-95 rounded-lg border border-zinc-700 transition"
           >
             Games
           </button>
@@ -94,7 +96,7 @@ function App() {
       </header>
 
       {/* Main */}
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="flex-1 flex overflow-hidden relative min-h-0">
         {/* Sidebar - desktop */}
         <div className="w-72 lg:w-[300px] shrink-0 hidden md:block">
           <GameList
@@ -118,16 +120,16 @@ function App() {
         {/* Mobile game list overlay */}
         {showMobileList && (
           <div className="md:hidden absolute inset-0 z-30 flex flex-col bg-chess-darker">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 shrink-0">
               <h2 className="font-semibold text-chess-gold">Select Game</h2>
               <button
                 onClick={() => setShowMobileList(false)}
-                className="px-3 py-1 text-sm bg-zinc-800 rounded-lg"
+                className="px-3 py-1.5 text-sm bg-zinc-800 active:scale-95 rounded-lg transition"
               >
                 Close
               </button>
             </div>
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-hidden min-h-0">
               <GameList
                 games={games}
                 selectedId={selectedId}
