@@ -16,11 +16,8 @@ export interface FischerGame {
 }
 
 export async function parseAllGames(): Promise<FischerGame[]> {
-  // Load the complete PGN of all 60 games from a public source
-  // (avoids committing a large binary-like text file)
-  const response = await fetch(
-    'https://raw.githubusercontent.com/brianerdelyi/ChessPGN/main/My%20Memorable%2060.pgn'
-  )
+  // Moves only, stored in this repo. No remote PGN and no book commentary.
+  const response = await fetch('/fischer60.pgn')
   if (!response.ok) {
     throw new Error('Failed to load PGN')
   }
